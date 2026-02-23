@@ -100,22 +100,22 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://crm-deal-consolidation1.vercel.app"],
+    allow_origin_regex=r"^https://crm-deal-consolidation1-.*\.vercel\.app$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # your routes below
 @app.get("/")
 def root():
     return {"message": "Hello"}
 
-from fastapi.middleware.cors import CORSMiddleware
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://crm-deal-consolidation1-frp5rjmjy-amrutha01am-6020s-projects.vercel.app"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 
 # -----------------------------
