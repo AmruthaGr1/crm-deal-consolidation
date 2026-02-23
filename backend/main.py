@@ -186,6 +186,32 @@ def extract_pdf_text_or_ocr(pdf_path: str) -> str:
                 os.remove(tmp_img)
     return "\n\n".join([c for c in ocr_chunks if c]).strip()
 
+
+def safe_json_loads(text_: str) -> dict:
+    """
+    Attempts to parse JSON even if model adds extra text.
+    1) direct json.loads
+    2) extract first {...} block and parse
+    """
+    if not text_ or not text_.strip():
+        raise ValueError("Groq returned empty response (no JSON).")
+
+    s = text_.strip()
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+
+    # try to salvage: find first { and last }
+    start = s.find("{")
+    end = s.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = s[start : end + 1]
+        return json.loads(candidate)
+
+    # give a helpful error for debugging
+    raise ValueError(f"Groq returned non-JSON. First 200 chars: {s[:200]!r}")
+
 def groq_extract_deals(raw_text: str, source_hint: str) -> List[Dict[str, Any]]:
     """
     Groq LLM: raw text -> strict JSON list of CRM deals.
@@ -229,13 +255,17 @@ TEXT:
 """
     # Use a fast, capable Groq model; you can change later if needed.
     resp = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0,
+    model="llama-3.3-70b-versatile",
+    messages=[
+        {"role": "system", "content": "You are a data extraction engine. Output ONLY a valid JSON object. No prose."},
+        {"role": "user", "content": prompt},
+    ],
+    temperature=0,
+    response_format={"type": "json_object"},
     )
-    content = resp.choices[0].message.content.strip()
 
-    data = json.loads(content)
+    content = (resp.choices[0].message.content or "").strip()
+    data = safe_json_loads(content)
     deals = data.get("deals", [])
     cleaned = []
     for d in deals:
@@ -460,6 +490,118 @@ def records(batch_id: str):
             {"batch_id": batch_id}
         ).mappings().all()
     return {"batch_id": batch_id, "records": list(rows), "count": len(rows)}
+
+@app.get("/kpis")
+def kpis(batch_id: str):
+    """
+    Optional KPI dashboard for a batch_id.
+    Computes summary metrics from the deals table.
+    """
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text("""
+            SELECT deal_id, client_name, deal_value, stage, closing_probability, owner, expected_close_date, source_file
+            FROM deals
+            WHERE batch_id=:batch_id
+            """),
+            {"batch_id": batch_id}
+        ).mappings().all()
+
+    data = list(rows)
+    if not data:
+        return {
+            "batch_id": batch_id,
+            "total_deals": 0,
+            "total_value": 0,
+            "avg_probability": None,
+            "value_by_stage": [],
+            "deals_by_owner": [],
+            "value_by_month": [],
+        }
+
+    # helpers
+    def safe_float(x):
+        try:
+            if x is None or x == "":
+                return None
+            return float(x)
+        except:
+            return None
+
+    total_deals = len(data)
+    values = [safe_float(r.get("deal_value")) for r in data]
+    probs = [safe_float(r.get("closing_probability")) for r in data]
+
+    total_value = sum([v for v in values if v is not None])
+
+    prob_valid = [p for p in probs if p is not None]
+    avg_probability = (sum(prob_valid) / len(prob_valid)) if prob_valid else None
+
+    # value by stage
+    stage_map = {}
+    for r in data:
+        stage = r.get("stage") or "Unknown"
+        v = safe_float(r.get("deal_value")) or 0.0
+        stage_map[stage] = stage_map.get(stage, 0.0) + v
+    value_by_stage = [{"stage": k, "value": round(v, 2)} for k, v in stage_map.items()]
+    value_by_stage.sort(key=lambda x: x["value"], reverse=True)
+
+    # deals by owner
+    owner_map = {}
+    for r in data:
+        owner = r.get("owner") or "Unknown"
+        owner_map[owner] = owner_map.get(owner, 0) + 1
+    deals_by_owner = [{"owner": k, "count": v} for k, v in owner_map.items()]
+    deals_by_owner.sort(key=lambda x: x["count"], reverse=True)
+
+    # value by expected close month (YYYY-MM)
+    month_map = {}
+    for r in data:
+        d = (r.get("expected_close_date") or "").strip()
+        # supports YYYY-MM-DD or YYYY-MM
+        month = None
+        if len(d) >= 7 and d[4] == "-":
+            month = d[:7]
+        if not month:
+            month = "Unknown"
+        v = safe_float(r.get("deal_value")) or 0.0
+        month_map[month] = month_map.get(month, 0.0) + v
+    value_by_month = [{"month": k, "value": round(v, 2)} for k, v in month_map.items()]
+    # put Unknown last
+    value_by_month.sort(key=lambda x: (x["month"] == "Unknown", x["month"]))
+
+    return {
+        "batch_id": batch_id,
+        "total_deals": total_deals,
+        "total_value": round(total_value, 2),
+        "avg_probability": round(avg_probability, 2) if avg_probability is not None else None,
+        "value_by_stage": value_by_stage,
+        "deals_by_owner": deals_by_owner,
+        "value_by_month": value_by_month,
+    }
+
+@app.get("/batches")
+def batches(limit: int = 20):
+    """
+    Returns recent batch_ids from uploads table, newest first.
+    Includes upload_timestamp and file count.
+    """
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text("""
+            SELECT
+              batch_id,
+              MAX(upload_timestamp) AS latest_upload,
+              COUNT(*) AS files_count
+            FROM uploads
+            GROUP BY batch_id
+            ORDER BY latest_upload DESC
+            LIMIT :limit
+            """),
+            {"limit": limit}
+        ).mappings().all()
+
+    return {"batches": [dict(r) for r in rows], "count": len(rows)}
 
 @app.get("/export")
 def export(batch_id: str):
