@@ -1,61 +1,39 @@
-﻿# CRM Deal Consolidation
+CRM Deal Consolidation
 Overview
 
-This system consolidates multi-format CRM inputs into a unified schema using:
-
-OCR for scanned documents
-
-Groq LLM for structured data extraction
-
-Supabase (Postgres) for storage
-
-React dashboard for analytics and export
+This system consolidates multi-format CRM inputs into a unified schema using OCR for scanned documents, Groq LLM for structured data extraction, Supabase (Postgres) for storage, and a React dashboard for analytics and export.
 
 System Architecture
+
 Processing Flow
 
 <img width="716" height="796" alt="image" src="https://github.com/user-attachments/assets/b9552f8e-c0ec-480c-afa8-2d47cf5ab222" />
 
 
 
-"Step 1 – Upload"
+Step 1 – Upload (Frontend)
 
-React frontend supports:
+The React dashboard supports the following file formats:
 
 PDF
 
-Excel (.xlsx / .xls)
+Excel
 
 CSV
 
-JPG / PNG
+JPG and PNG
 
-ZIP (recursive extraction)
+ZIP (recursive extraction of supported files)
 
+Step 2 – Text Extraction
 
+Depending on file type: File Type Method CSV Deterministic parsing (pandas) Excel Deterministic parsing (pandas) PDF Embedded text extraction (PyMuPDF) Image OCR using Tesseract ZIP Extract → Process contained files If PDF contains no embedded text → fallback to OCR.
 
-"Step 2 – Text Extraction"
+Step 3 – LLM Structuring
 
-Depending on file type:
+Raw extracted text is sent to the Groq Cloud LLM to:
 
-File Type	Method
-CSV	Deterministic parsing (pandas)
-Excel	Deterministic parsing (pandas)
-PDF	Embedded text extraction (PyMuPDF)
-Image	OCR using Tesseract
-ZIP	Extract → Process contained files
-
-If PDF contains no embedded text → fallback to OCR.
-
-
-
-"Step 3 – LLM Structuring" 
-
-Raw extracted text is sent to Groq Cloud LLM.
-
-The LLM is prompted to:
-
-Extract structured fields
+Extract structured CRM fields
 
 Normalize field names
 
@@ -63,38 +41,21 @@ Convert numeric formats
 
 Return strictly valid JSON
 
-The system prompt enforces:
-
-Strict JSON output
-
-Exact CRM schema keys
-
-No hallucinated fields
-
-Null for missing values
-
-Numeric normalization (strip %, $, commas)
-
-Reliability Handling
-
-JSON mode enabled in Groq
-
-Safe JSON parsing fallback
 
 
-
-"Step 4 – Database Storage"
+Step 4 – Database Storage
 
 All structured deals are stored in Supabase Postgres.
 
-Two tables:
+Database tables:
 
 uploads
 
 deals
 
+A batch-based architecture ensures upload isolation and traceability.
 
-"Step 5 – KPI Dashboard (Optional Requirement)"
+Step 5 – KPI Dashboard
 
 Built using Recharts.
 
@@ -104,25 +65,26 @@ Total pipeline value
 
 Closed Won and Total deals
 
-Stage distribution (Bar chart)
+Stage distribution (bar chart)
 
 Deals by owner
 
 Expected close value by month
 
+Step 6 – Export
 
-
-"Step 6 – Export"
-
-Returns:
+The system generates:
 
 Consolidated Excel file
 
-Unified schema
+Unified schema output
 
 All structured deals
 
 Unified Final Schema
+
+All sources are normalized into the following schema:
+
 deal_id
 client_name
 deal_value
@@ -131,79 +93,55 @@ closing_probability
 owner
 expected_close_date
 
-All sources are normalized into this schema.
-
-
-
-"Design Decisions"
+Design Decisions
 
 Batch-based architecture for upload isolation
 
 UTC timestamps for consistency
 
-LLM orchestration isolated in one function
+LLM orchestration isolated in a dedicated function
 
 OCR fallback logic for scanned PDFs
 
-JSON-mode enforced to prevent malformed LLM output
-
 Safe parsing to handle edge cases
 
+Challenges Faced
 
+OCR reliability issues, handled with fallback strategy
 
-"Challenges Faced"
+Timezone inconsistencies, standardized to UTC
 
-LLM occasionally returning non-JSON — resolved using JSON mode + safe parsing.
+Batch history UI readability, improved with formatted timestamps
 
-OCR reliability — fallback strategy implemented.
+Cost Estimation
 
-Timezone inconsistencies — standardized to UTC.
-
-Batch history UI readability — improved with formatted timestamps.
-
-
-
-"Cost Estimation (If Scaled)"
-
-At small scale:
-
-Supabase Free
+Supabase Free Tier
 
 Groq free inference tier
 
-Local OCR
+Local OCR processing
 
+Tech Stack
 
-
-"Tech Stack"
-
-Frontend:
-
+Frontend
 React (Vite)
-
-Recharts (KPI charts)
-
+Recharts
 Modern CSS
 
-Backend:
-
+Backend
 FastAPI
-
 Groq LLM API
-
 PyMuPDF
-
 Tesseract OCR
-
 Pandas
 
-Database:
-
+Database
 Supabase (Postgres)
 
+How to Run Locally
 
-"How to Run Locally"
 Backend
+
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
@@ -211,9 +149,11 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 
 Frontend
+
 cd frontend
 npm install
 npm run dev
+
 
 
 
