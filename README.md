@@ -16,6 +16,8 @@ Processing Flow
 
 <img width="716" height="796" alt="image" src="https://github.com/user-attachments/assets/b9552f8e-c0ec-480c-afa8-2d47cf5ab222" />
 
+
+
 Step 1 – Upload
 
 React frontend supports:
@@ -30,6 +32,8 @@ JPG / PNG
 
 ZIP (recursive extraction)
 
+
+
 Step 2 – Text Extraction
 
 Depending on file type:
@@ -42,6 +46,8 @@ Image	OCR using Tesseract
 ZIP	Extract → Process contained files
 
 If PDF contains no embedded text → fallback to OCR.
+
+
 
 Step 3 – LLM Structuring 
 
@@ -75,6 +81,8 @@ JSON mode enabled in Groq
 
 Safe JSON parsing fallback
 
+
+
 Step 4 – Database Storage
 
 All structured deals are stored in Supabase Postgres.
@@ -102,6 +110,8 @@ stage	Deal stage
 closing_probability	% probability
 owner	Sales rep
 expected_close_date	Forecast date
+
+
 Step 5 – KPI Dashboard (Optional Requirement)
 
 Built using Recharts.
@@ -118,6 +128,8 @@ Deals by owner
 
 Expected close value by month
 
+
+
 Step 6 – Export
 
 Returns:
@@ -128,7 +140,7 @@ Unified schema
 
 All structured deals
 
-📊 Unified Final Schema
+Unified Final Schema
 deal_id
 client_name
 deal_value
@@ -138,6 +150,8 @@ owner
 expected_close_date
 
 All sources are normalized into this schema.
+
+
 
 Design Decisions
 
@@ -153,6 +167,8 @@ JSON-mode enforced to prevent malformed LLM output
 
 Safe parsing to handle edge cases
 
+
+
 Challenges Faced
 
 LLM occasionally returning non-JSON — resolved using JSON mode + safe parsing.
@@ -163,6 +179,8 @@ Timezone inconsistencies — standardized to UTC.
 
 Batch history UI readability — improved with formatted timestamps.
 
+
+
 Cost Estimation (If Scaled)
 
 At small scale:
@@ -172,6 +190,8 @@ Supabase Free
 Groq free inference tier
 
 Local OCR
+
+
 
 Tech Stack
 
@@ -212,4 +232,5 @@ Frontend
 cd frontend
 npm install
 npm run dev
+
 
