@@ -103,7 +103,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://your-frontend.vercel.app"
+        "https://crm-deal-consolidation1-ozsasuncq-amrutha01am-6020s-projects.vercel.app/"
     ],
     allow_credentials=True,
     allow_methods=["*"],
