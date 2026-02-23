@@ -18,7 +18,7 @@ Processing Flow
 
 
 
-Step 1 – Upload
+"Step 1 – Upload"
 
 React frontend supports:
 
@@ -34,7 +34,7 @@ ZIP (recursive extraction)
 
 
 
-Step 2 – Text Extraction
+"Step 2 – Text Extraction"
 
 Depending on file type:
 
@@ -49,7 +49,7 @@ If PDF contains no embedded text → fallback to OCR.
 
 
 
-Step 3 – LLM Structuring 
+"Step 3 – LLM Structuring" 
 
 Raw extracted text is sent to Groq Cloud LLM.
 
@@ -83,36 +83,18 @@ Safe JSON parsing fallback
 
 
 
-Step 4 – Database Storage
+"Step 4 – Database Storage"
 
 All structured deals are stored in Supabase Postgres.
 
 Two tables:
 
 uploads
-Column	Purpose
-id	Primary key
-batch_id	Upload session grouping
-source_file	File name
-upload_timestamp	UTC timestamp
-processing_status	uploaded / parsed / ai_extracted / failed
-error	Error message if failed
 
 deals
-Column	Purpose
-id	Primary key
-batch_id	Links to upload
-source_file	Original file
-deal_id	Normalized deal identifier
-client_name	Client
-deal_value	Numeric pipeline value
-stage	Deal stage
-closing_probability	% probability
-owner	Sales rep
-expected_close_date	Forecast date
 
 
-Step 5 – KPI Dashboard (Optional Requirement)
+"Step 5 – KPI Dashboard (Optional Requirement)"
 
 Built using Recharts.
 
@@ -130,7 +112,7 @@ Expected close value by month
 
 
 
-Step 6 – Export
+"Step 6 – Export"
 
 Returns:
 
@@ -153,7 +135,7 @@ All sources are normalized into this schema.
 
 
 
-Design Decisions
+"Design Decisions"
 
 Batch-based architecture for upload isolation
 
@@ -169,7 +151,7 @@ Safe parsing to handle edge cases
 
 
 
-Challenges Faced
+"Challenges Faced"
 
 LLM occasionally returning non-JSON — resolved using JSON mode + safe parsing.
 
@@ -181,7 +163,7 @@ Batch history UI readability — improved with formatted timestamps.
 
 
 
-Cost Estimation (If Scaled)
+"Cost Estimation (If Scaled)"
 
 At small scale:
 
@@ -193,7 +175,7 @@ Local OCR
 
 
 
-Tech Stack
+"Tech Stack"
 
 Frontend:
 
@@ -220,7 +202,7 @@ Database:
 Supabase (Postgres)
 
 
-How to Run Locally
+"How to Run Locally"
 Backend
 cd backend
 python -m venv .venv
@@ -232,5 +214,6 @@ Frontend
 cd frontend
 npm install
 npm run dev
+
 
 
