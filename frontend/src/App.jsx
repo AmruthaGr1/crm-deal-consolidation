@@ -6,8 +6,11 @@ import {
 
 import "./App.css";
 import { useEffect, useMemo, useState } from "react";
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const ALLOWED_EXTENSIONS = ["pdf", "xlsx", "xls", "csv", "jpg", "jpeg", "png", "zip"];
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error("VITE_API_URL is not set");
+}const ALLOWED_EXTENSIONS = ["pdf", "xlsx", "xls", "csv", "jpg", "jpeg", "png", "zip"];
 
 const SCHEMA_COLUMNS = [
   "deal_id",
